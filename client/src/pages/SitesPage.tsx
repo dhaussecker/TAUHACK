@@ -1,8 +1,11 @@
 import { DataTable, SortableHeader } from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { StatusCell, StatusCode } from "@/components/StatusCell";
+import { useState } from "react";
+import { CustomFieldManager } from "@/components/CustomFieldManager";
+import { SiteDetailModal } from "@/components/SiteDetailModal";
 
 interface Site {
   id: string;
@@ -15,6 +18,9 @@ interface Site {
 }
 
 export default function SitesPage() {
+  const [manageFieldsOpen, setManageFieldsOpen] = useState(false);
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+
   const sites: Site[] = [
     {
       id: "SITE-001",
@@ -107,16 +113,38 @@ export default function SitesPage() {
           <h1 className="text-2xl font-semibold text-foreground">Job Sites</h1>
           <p className="text-sm text-muted-foreground">{sites.length} active sites</p>
         </div>
-        <Button data-testid="button-add-site">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Site
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setManageFieldsOpen(true)}
+            data-testid="button-manage-fields"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Manage Fields
+          </Button>
+          <Button data-testid="button-add-site">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Site
+          </Button>
+        </div>
       </div>
 
       <DataTable
         columns={columns}
         data={sites}
-        onRowClick={(site) => console.log("View site:", site.id)}
+        onRowClick={(site) => setSelectedSite(site)}
+      />
+
+      <CustomFieldManager
+        entityType="sites"
+        open={manageFieldsOpen}
+        onOpenChange={setManageFieldsOpen}
+      />
+
+      <SiteDetailModal
+        open={!!selectedSite}
+        onOpenChange={(open) => !open && setSelectedSite(null)}
+        site={selectedSite}
       />
     </div>
   );

@@ -31,7 +31,7 @@ export interface CustomFieldValue {
 
 export function useCustomFields(entityType: string) {
   const { data: customFields = [] } = useQuery<CustomField[]>({
-    queryKey: ["/api/custom-fields", { entityType }],
+    queryKey: [`/api/custom-fields?entityType=${entityType}`],
   });
 
   return { customFields };

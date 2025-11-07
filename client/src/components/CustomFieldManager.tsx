@@ -92,7 +92,7 @@ export function CustomFieldManager({
         }
       }
       await queryClient.invalidateQueries({
-        queryKey: ["/api/custom-fields", { entityType }],
+        queryKey: [`/api/custom-fields?entityType=${entityType}`],
       });
       toast({
         title: "Field created",
@@ -115,7 +115,7 @@ export function CustomFieldManager({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/custom-fields/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["/api/custom-fields", { entityType }],
+        queryKey: [`/api/custom-fields?entityType=${entityType}`],
       });
       toast({
         title: "Field deleted",

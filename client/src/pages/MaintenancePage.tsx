@@ -1,10 +1,12 @@
 import { Card } from "@/components/ui/card";
 import { DataTable, SortableHeader } from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
-import { Plus, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { Plus, AlertCircle, CheckCircle2, Clock, Settings } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
+import { CustomFieldManager } from "@/components/CustomFieldManager";
+import { MaintenanceDetailModal } from "@/components/MaintenanceDetailModal";
 
 interface MaintenanceItem {
   id: string;
@@ -18,6 +20,8 @@ interface MaintenanceItem {
 
 export default function MaintenancePage() {
   const [selectedTab, setSelectedTab] = useState("overdue");
+  const [manageFieldsOpen, setManageFieldsOpen] = useState(false);
+  const [selectedMaintenance, setSelectedMaintenance] = useState<MaintenanceItem | null>(null);
 
   const overdueItems: MaintenanceItem[] = [
     {
@@ -144,10 +148,20 @@ export default function MaintenancePage() {
           <h1 className="text-2xl font-semibold text-foreground">Maintenance</h1>
           <p className="text-sm text-muted-foreground">Track and schedule equipment maintenance</p>
         </div>
-        <Button data-testid="button-add-maintenance">
-          <Plus className="w-4 h-4 mr-2" />
-          Schedule Maintenance
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setManageFieldsOpen(true)}
+            data-testid="button-manage-fields"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Manage Fields
+          </Button>
+          <Button data-testid="button-add-maintenance">
+            <Plus className="w-4 h-4 mr-2" />
+            Schedule Maintenance
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -205,7 +219,7 @@ export default function MaintenancePage() {
           <DataTable
             columns={columns}
             data={overdueItems}
-            onRowClick={(item) => console.log("View maintenance:", item.id)}
+            onRowClick={(item) => setSelectedMaintenance(item)}
           />
         </TabsContent>
 
@@ -213,7 +227,7 @@ export default function MaintenancePage() {
           <DataTable
             columns={columns}
             data={upcomingItems}
-            onRowClick={(item) => console.log("View maintenance:", item.id)}
+            onRowClick={(item) => setSelectedMaintenance(item)}
           />
         </TabsContent>
 
@@ -221,10 +235,22 @@ export default function MaintenancePage() {
           <DataTable
             columns={columns}
             data={completedItems}
-            onRowClick={(item) => console.log("View maintenance:", item.id)}
+            onRowClick={(item) => setSelectedMaintenance(item)}
           />
         </TabsContent>
       </Tabs>
+
+      <CustomFieldManager
+        entityType="maintenance"
+        open={manageFieldsOpen}
+        onOpenChange={setManageFieldsOpen}
+      />
+
+      <MaintenanceDetailModal
+        open={!!selectedMaintenance}
+        onOpenChange={(open) => !open && setSelectedMaintenance(null)}
+        maintenance={selectedMaintenance}
+      />
     </div>
   );
 }
