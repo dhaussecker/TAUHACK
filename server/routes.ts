@@ -7,6 +7,8 @@ import {
   insertCustomFieldOptionSchema,
   insertCustomFieldValueSchema,
   insertSavedViewSchema,
+  insertFormSubmissionSchema,
+  insertFormResponseSchema,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -248,6 +250,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Form Submission routes
+  app.get("/api/forms/submissions", async (req, res) => {
+    try {
+      const formType = req.query.formType as string | undefined;
+      const submissions = await storage.getAllFormSubmissions(formType);
+      res.json(submissions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/forms/submissions/:id", async (req, res) => {
+    try {
+      const submission = await storage.getFormSubmission(req.params.id);
+      if (!submission) {
+        return res.status(404).json({ error: "Form submission not found" });
+      }
+      res.json(submission);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/forms/submissions", async (req, res) => {
+    try {
+      const validated = insertFormSubmissionSchema.parse(req.body);
+      const submission = await storage.createFormSubmission(validated);
+      res.json(submission);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/forms/submissions/:id", async (req, res) => {
+    try {
+      const validated = insertFormSubmissionSchema.partial().parse(req.body);
+      const submission = await storage.updateFormSubmission(req.params.id, validated);
+      res.json(submission);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/forms/submissions/:id", async (req, res) => {
+    try {
+      await storage.deleteFormSubmission(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Form Response routes
+  app.get("/api/forms/submissions/:id/responses", async (req, res) => {
+    try {
+      const responses = await storage.getSubmissionResponses(req.params.id);
+      res.json(responses);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/forms/responses", async (req, res) => {
+    try {
+      const validated = insertFormResponseSchema.parse(req.body);
+      const response = await storage.createFormResponse(validated);
+      res.json(response);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
     }
   });
 

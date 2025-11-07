@@ -118,3 +118,42 @@ export const insertSavedViewSchema = createInsertSchema(savedViews).omit({
 
 export type InsertSavedView = z.infer<typeof insertSavedViewSchema>;
 export type SavedView = typeof savedViews.$inferSelect;
+
+// Form submissions (ERR and Inspection forms)
+export const formSubmissions = pgTable("form_submissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  formType: text("form_type").notNull(), // 'err' or 'inspection'
+  equipmentId: varchar("equipment_id").references(() => equipment.id, { onDelete: "set null" }),
+  submittedBy: text("submitted_by").notNull(),
+  location: text("location"),
+  notes: text("notes"),
+  status: text("status").notNull().default("pending"), // 'pending', 'completed', 'cancelled'
+  submittedAt: timestamp("submitted_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertFormSubmissionSchema = createInsertSchema(formSubmissions).omit({
+  id: true,
+  submittedAt: true,
+});
+
+export type InsertFormSubmission = z.infer<typeof insertFormSubmissionSchema>;
+export type FormSubmission = typeof formSubmissions.$inferSelect;
+
+// Form responses (answers to custom field questions)
+export const formResponses = pgTable("form_responses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  submissionId: varchar("submission_id").notNull().references(() => formSubmissions.id, { onDelete: "cascade" }),
+  fieldId: varchar("field_id").references(() => customFields.id, { onDelete: "set null" }),
+  fieldName: text("field_name").notNull(), // Store field name in case field is deleted
+  textValue: text("text_value"),
+  numberValue: integer("number_value"),
+  selectValue: text("select_value"),
+});
+
+export const insertFormResponseSchema = createInsertSchema(formResponses).omit({
+  id: true,
+});
+
+export type InsertFormResponse = z.infer<typeof insertFormResponseSchema>;
+export type FormResponse = typeof formResponses.$inferSelect;

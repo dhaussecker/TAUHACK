@@ -10,6 +10,7 @@ import Dashboard from "@/pages/Dashboard";
 import EquipmentPage from "@/pages/EquipmentPage";
 import MaintenancePage from "@/pages/MaintenancePage";
 import SitesPage from "@/pages/SitesPage";
+import FormsPage from "@/pages/FormsPage";
 import ReportsPage from "@/pages/ReportsPage";
 import NotFound from "@/pages/not-found";
 
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/equipment" component={EquipmentPage} />
       <Route path="/maintenance" component={MaintenancePage} />
       <Route path="/sites" component={SitesPage} />
+      <Route path="/forms" component={FormsPage} />
       <Route path="/reports" component={ReportsPage} />
       <Route component={NotFound} />
     </Switch>

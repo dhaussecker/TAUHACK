@@ -11,12 +11,18 @@ import {
   type InsertCustomFieldValue,
   type SavedView,
   type InsertSavedView,
+  type FormSubmission,
+  type InsertFormSubmission,
+  type FormResponse,
+  type InsertFormResponse,
   users,
   equipment,
   customFields,
   customFieldOptions,
   customFieldValues,
   savedViews,
+  formSubmissions,
+  formResponses,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -60,6 +66,17 @@ export interface IStorage {
   createView(view: InsertSavedView): Promise<SavedView>;
   updateView(id: string, view: Partial<InsertSavedView>): Promise<SavedView>;
   deleteView(id: string): Promise<void>;
+
+  // Form Submissions
+  getAllFormSubmissions(formType?: string): Promise<FormSubmission[]>;
+  getFormSubmission(id: string): Promise<FormSubmission | undefined>;
+  createFormSubmission(submission: InsertFormSubmission): Promise<FormSubmission>;
+  updateFormSubmission(id: string, submission: Partial<InsertFormSubmission>): Promise<FormSubmission>;
+  deleteFormSubmission(id: string): Promise<void>;
+
+  // Form Responses
+  getSubmissionResponses(submissionId: string): Promise<FormResponse[]>;
+  createFormResponse(response: InsertFormResponse): Promise<FormResponse>;
 }
 
 export class DbStorage implements IStorage {
@@ -226,6 +243,45 @@ export class DbStorage implements IStorage {
     const result = await db.delete(savedViews).where(eq(savedViews.id, id)).returning();
     if (result.length === 0) throw new Error("View not found");
   }
+
+  // Form Submissions
+  async getAllFormSubmissions(formType?: string): Promise<FormSubmission[]> {
+    if (formType) {
+      return await db.select().from(formSubmissions).where(eq(formSubmissions.formType, formType));
+    }
+    return await db.select().from(formSubmissions);
+  }
+
+  async getFormSubmission(id: string): Promise<FormSubmission | undefined> {
+    const [submission] = await db.select().from(formSubmissions).where(eq(formSubmissions.id, id));
+    return submission;
+  }
+
+  async createFormSubmission(submission: InsertFormSubmission): Promise<FormSubmission> {
+    const [created] = await db.insert(formSubmissions).values(submission).returning();
+    return created;
+  }
+
+  async updateFormSubmission(id: string, updates: Partial<InsertFormSubmission>): Promise<FormSubmission> {
+    const [updated] = await db.update(formSubmissions).set(updates).where(eq(formSubmissions.id, id)).returning();
+    if (!updated) throw new Error("Form submission not found");
+    return updated;
+  }
+
+  async deleteFormSubmission(id: string): Promise<void> {
+    const result = await db.delete(formSubmissions).where(eq(formSubmissions.id, id)).returning();
+    if (result.length === 0) throw new Error("Form submission not found");
+  }
+
+  // Form Responses
+  async getSubmissionResponses(submissionId: string): Promise<FormResponse[]> {
+    return await db.select().from(formResponses).where(eq(formResponses.submissionId, submissionId));
+  }
+
+  async createFormResponse(response: InsertFormResponse): Promise<FormResponse> {
+    const [created] = await db.insert(formResponses).values(response).returning();
+    return created;
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -235,6 +291,8 @@ export class MemStorage implements IStorage {
   private customFieldOptions: Map<string, CustomFieldOption>;
   private customFieldValues: Map<string, CustomFieldValue>;
   private savedViews: Map<string, SavedView>;
+  private formSubmissions: Map<string, FormSubmission>;
+  private formResponses: Map<string, FormResponse>;
 
   constructor() {
     this.users = new Map();
@@ -243,6 +301,8 @@ export class MemStorage implements IStorage {
     this.customFieldOptions = new Map();
     this.customFieldValues = new Map();
     this.savedViews = new Map();
+    this.formSubmissions = new Map();
+    this.formResponses = new Map();
   }
 
   // Users
@@ -441,6 +501,67 @@ export class MemStorage implements IStorage {
 
   async deleteView(id: string): Promise<void> {
     this.savedViews.delete(id);
+  }
+
+  // Form Submissions
+  async getAllFormSubmissions(formType?: string): Promise<FormSubmission[]> {
+    const all = Array.from(this.formSubmissions.values());
+    if (formType) {
+      return all.filter(s => s.formType === formType);
+    }
+    return all;
+  }
+
+  async getFormSubmission(id: string): Promise<FormSubmission | undefined> {
+    return this.formSubmissions.get(id);
+  }
+
+  async createFormSubmission(submission: InsertFormSubmission): Promise<FormSubmission> {
+    const id = randomUUID();
+    const created: FormSubmission = {
+      ...submission,
+      id,
+      equipmentId: submission.equipmentId ?? null,
+      location: submission.location ?? null,
+      notes: submission.notes ?? null,
+      completedAt: submission.completedAt ?? null,
+      submittedAt: new Date(),
+    };
+    this.formSubmissions.set(id, created);
+    return created;
+  }
+
+  async updateFormSubmission(id: string, updates: Partial<InsertFormSubmission>): Promise<FormSubmission> {
+    const existing = this.formSubmissions.get(id);
+    if (!existing) throw new Error("Form submission not found");
+    const updated = { ...existing, ...updates };
+    this.formSubmissions.set(id, updated);
+    return updated;
+  }
+
+  async deleteFormSubmission(id: string): Promise<void> {
+    this.formSubmissions.delete(id);
+  }
+
+  // Form Responses
+  async getSubmissionResponses(submissionId: string): Promise<FormResponse[]> {
+    return Array.from(this.formResponses.values()).filter(
+      r => r.submissionId === submissionId
+    );
+  }
+
+  async createFormResponse(response: InsertFormResponse): Promise<FormResponse> {
+    const id = randomUUID();
+    const created: FormResponse = {
+      ...response,
+      id,
+      fieldId: response.fieldId ?? null,
+      textValue: response.textValue ?? null,
+      numberValue: response.numberValue ?? null,
+      selectValue: response.selectValue ?? null,
+    };
+    this.formResponses.set(id, created);
+    return created;
   }
 }
 

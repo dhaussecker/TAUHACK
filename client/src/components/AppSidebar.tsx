@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { Home, Truck, Wrench, MapPin, FileText, Settings } from "lucide-react";
+import { Home, Truck, Wrench, MapPin, FileText, ClipboardList, Settings } from "lucide-react";
 import { useLocation } from "wouter";
 
 const menuItems = [
@@ -17,6 +17,7 @@ const menuItems = [
   { title: "Equipment", url: "/equipment", icon: Truck },
   { title: "Maintenance", url: "/maintenance", icon: Wrench },
   { title: "Sites", url: "/sites", icon: MapPin },
+  { title: "Forms", url: "/forms", icon: ClipboardList },
   { title: "Reports", url: "/reports", icon: FileText },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
