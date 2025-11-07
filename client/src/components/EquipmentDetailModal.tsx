@@ -4,7 +4,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +21,15 @@ interface MaintenanceRecord {
   mechanic: string;
   requestedBy: string;
   status: "completed" | "scheduled" | "overdue";
+}
+
+interface HistoryEntry {
+  id: string;
+  date: string;
+  time: string;
+  type: "location" | "operator" | "maintenance" | "hours" | "status";
+  description: string;
+  user: string;
 }
 
 interface Equipment {
@@ -55,7 +63,36 @@ export function EquipmentDetailModal({ open, onOpenChange, equipment }: Equipmen
 
   if (!equipment) return null;
 
-  const maintenanceHistory: MaintenanceRecord[] = [
+  // Sample data - would come from backend
+  const maintenanceHistory: MaintenanceRecord[] = equipment.id === "EX-2024-001" ? [
+    {
+      id: "M-001",
+      date: "Nov 15, 2025",
+      type: "100-Hour Service",
+      notes: "Scheduled routine maintenance due at 1300 hours",
+      mechanic: "Mike Torres",
+      requestedBy: "System Auto",
+      status: "scheduled",
+    },
+    {
+      id: "M-002",
+      date: "Oct 15, 2025",
+      type: "Oil Change & Filter",
+      notes: "Replaced engine oil (15W-40) and oil filter. Checked all fluid levels. All systems normal.",
+      mechanic: "Sarah Chen",
+      requestedBy: "John Smith",
+      status: "completed",
+    },
+    {
+      id: "M-003",
+      date: "Sep 28, 2025",
+      type: "Hydraulic System Check",
+      notes: "Full inspection completed. Minor leak repaired on hydraulic line 3. Replaced worn seal.",
+      mechanic: "James Wilson",
+      requestedBy: "Sarah Chen",
+      status: "completed",
+    },
+  ] : [
     {
       id: "M-001",
       date: "Nov 8, 2025",
@@ -65,23 +102,73 @@ export function EquipmentDetailModal({ open, onOpenChange, equipment }: Equipmen
       requestedBy: "System Auto",
       status: "scheduled",
     },
+  ];
+
+  const historyEntries: HistoryEntry[] = equipment.id === "EX-2024-001" ? [
     {
-      id: "M-002",
-      date: "Oct 15, 2025",
-      type: "Oil Change & Filter",
-      notes: "Replaced engine oil and filter. All systems normal.",
-      mechanic: "Sarah Chen",
-      requestedBy: "John Smith",
-      status: "completed",
+      id: "H-001",
+      date: "Nov 7, 2025",
+      time: "2:15 PM",
+      type: "hours",
+      description: "Engine hours updated: 1245 hrs",
+      user: "John Smith",
     },
     {
-      id: "M-003",
+      id: "H-002",
+      date: "Nov 6, 2025",
+      time: "8:30 AM",
+      description: "Moved to Downtown Build site",
+      type: "location",
+      user: "Mike Torres",
+    },
+    {
+      id: "H-003",
+      date: "Nov 5, 2025",
+      time: "4:45 PM",
+      type: "operator",
+      description: "Operator assigned: John Smith",
+      user: "Admin",
+    },
+    {
+      id: "H-004",
+      date: "Oct 15, 2025",
+      time: "11:20 AM",
+      type: "maintenance",
+      description: "Oil change completed",
+      user: "Sarah Chen",
+    },
+    {
+      id: "H-005",
+      date: "Oct 14, 2025",
+      time: "3:00 PM",
+      type: "status",
+      description: "Maintenance status changed to G_1",
+      user: "Sarah Chen",
+    },
+    {
+      id: "H-006",
+      date: "Oct 1, 2025",
+      time: "9:15 AM",
+      type: "location",
+      description: "Moved to Airport Expansion site",
+      user: "Mike Torres",
+    },
+    {
+      id: "H-007",
       date: "Sep 28, 2025",
-      type: "Hydraulic System Check",
-      notes: "Full inspection completed. Minor leak repaired on line 3.",
-      mechanic: "James Wilson",
-      requestedBy: "Sarah Chen",
-      status: "completed",
+      time: "2:30 PM",
+      type: "maintenance",
+      description: "Hydraulic system check completed",
+      user: "James Wilson",
+    },
+  ] : [
+    {
+      id: "H-001",
+      date: equipment.lastReportDate || "Nov 7, 2025",
+      time: "2:00 PM",
+      type: "hours",
+      description: `Engine hours updated: ${equipment.hours} hrs`,
+      user: equipment.lastReportBy || "Unknown",
     },
   ];
 
@@ -89,11 +176,18 @@ export function EquipmentDetailModal({ open, onOpenChange, equipment }: Equipmen
     console.log("Saving notes:", notes);
   };
 
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="sm:max-w-3xl overflow-y-auto" data-testid="modal-equipment-detail">
-          <SheetHeader className="mb-6">
+          <SheetHeader className="mb-6 sticky top-0 bg-background z-20 pb-4 border-b">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <SheetTitle className="text-2xl">{equipment.name}</SheetTitle>
@@ -119,82 +213,111 @@ export function EquipmentDetailModal({ open, onOpenChange, equipment }: Equipmen
                 <StatusCell status={equipment.err} type="err" />
               </div>
             </div>
+
+            <div className="flex gap-2 mt-4 overflow-x-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => scrollToSection("overview")}
+                data-testid="nav-overview"
+              >
+                Overview
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => scrollToSection("maintenance")}
+                data-testid="nav-maintenance"
+              >
+                Maintenance
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => scrollToSection("notes")}
+                data-testid="nav-notes"
+              >
+                Notes
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => scrollToSection("history")}
+                data-testid="nav-history"
+              >
+                History
+              </Button>
+            </div>
           </SheetHeader>
 
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
-              <TabsTrigger value="maintenance" data-testid="tab-maintenance">Maintenance</TabsTrigger>
-              <TabsTrigger value="notes" data-testid="tab-notes">Notes</TabsTrigger>
-              <TabsTrigger value="history" data-testid="tab-history">History</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="overview" className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Type</p>
-                  <p className="text-base font-medium">{equipment.type}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Serial Number</p>
-                  <p className="text-base font-mono">{equipment.serialNumber}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Engine Hours</p>
-                  <p className="text-base font-medium flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    {equipment.hours.toLocaleString()} hrs
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Purchase Date</p>
-                  <p className="text-base font-medium flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    {equipment.purchaseDate}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Current Location</p>
-                  <p className="text-base font-medium flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    {equipment.location}
-                  </p>
-                </div>
-                {equipment.operator && (
+          <div className="space-y-8">
+            <section id="overview" className="scroll-mt-32">
+              <h3 className="text-lg font-semibold mb-4">Overview</h3>
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Operator</p>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Type</p>
+                    <p className="text-base font-medium">{equipment.type}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Serial Number</p>
+                    <p className="text-base font-mono">{equipment.serialNumber}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Engine Hours</p>
                     <p className="text-base font-medium flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      {equipment.operator}
+                      <Clock className="w-4 h-4" />
+                      {equipment.hours.toLocaleString()} hrs
                     </p>
                   </div>
-                )}
-              </div>
-
-              {equipment.lastReportBy && (
-                <Card className="p-4 bg-muted/50">
-                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    Last Report
-                  </h3>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Reported By</p>
-                      <p className="font-medium">{equipment.lastReportBy}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Recorded Hours</p>
-                      <p className="font-medium font-mono">{equipment.lastReportHours?.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Date</p>
-                      <p className="font-medium">{equipment.lastReportDate}</p>
-                    </div>
+                  <div className="space-y-1">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Purchase Date</p>
+                    <p className="text-base font-medium flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      {equipment.purchaseDate}
+                    </p>
                   </div>
-                </Card>
-              )}
+                  <div className="space-y-1">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Current Location</p>
+                    <p className="text-base font-medium flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      {equipment.location}
+                    </p>
+                  </div>
+                  {equipment.operator && (
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Operator</p>
+                      <p className="text-base font-medium flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        {equipment.operator}
+                      </p>
+                    </div>
+                  )}
+                </div>
 
-              <div className="pt-4 border-t">
+                {equipment.lastReportBy && (
+                  <Card className="p-4 bg-muted/50">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Last Report
+                    </h3>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Reported By</p>
+                        <p className="font-medium">{equipment.lastReportBy}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Recorded Hours</p>
+                        <p className="font-medium font-mono">{equipment.lastReportHours?.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Date</p>
+                        <p className="font-medium">{equipment.lastReportDate}</p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
                 <Button
                   onClick={() => setQrOpen(true)}
                   variant="outline"
@@ -205,9 +328,10 @@ export function EquipmentDetailModal({ open, onOpenChange, equipment }: Equipmen
                   Show QR Code
                 </Button>
               </div>
-            </TabsContent>
+            </section>
 
-            <TabsContent value="maintenance" className="space-y-4">
+            <section id="maintenance" className="scroll-mt-32">
+              <h3 className="text-lg font-semibold mb-4">Maintenance History</h3>
               <div className="space-y-3">
                 {maintenanceHistory.map((record) => (
                   <Card key={record.id} className="p-4" data-testid={`maintenance-record-${record.id}`}>
@@ -250,11 +374,11 @@ export function EquipmentDetailModal({ open, onOpenChange, equipment }: Equipmen
                   </Card>
                 ))}
               </div>
-            </TabsContent>
+            </section>
 
-            <TabsContent value="notes" className="space-y-4">
+            <section id="notes" className="scroll-mt-32">
+              <h3 className="text-lg font-semibold mb-4">Notes</h3>
               <div className="space-y-3">
-                <label className="text-sm font-medium">Equipment Notes</label>
                 <Textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -266,17 +390,28 @@ export function EquipmentDetailModal({ open, onOpenChange, equipment }: Equipmen
                   Save Notes
                 </Button>
               </div>
-            </TabsContent>
+            </section>
 
-            <TabsContent value="history" className="space-y-4">
+            <section id="history" className="scroll-mt-32">
+              <h3 className="text-lg font-semibold mb-4">Activity History</h3>
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  Complete activity history will be displayed here including all maintenance,
-                  repairs, location changes, and operator assignments.
-                </p>
+                {historyEntries.map((entry) => (
+                  <Card key={entry.id} className="p-3" data-testid={`history-${entry.id}`}>
+                    <div className="flex items-start gap-3">
+                      <div className="text-xs text-muted-foreground min-w-24">
+                        <div>{entry.date}</div>
+                        <div>{entry.time}</div>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm">{entry.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1">by {entry.user}</p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
               </div>
-            </TabsContent>
-          </Tabs>
+            </section>
+          </div>
         </SheetContent>
       </Sheet>
 

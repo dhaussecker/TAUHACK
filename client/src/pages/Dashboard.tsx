@@ -1,55 +1,141 @@
 import { KPICard } from "@/components/KPICard";
-import { EquipmentCard } from "@/components/EquipmentCard";
-import { Truck, Wrench, MapPin, Clock, AlertCircle } from "lucide-react";
+import { DataTable, SortableHeader } from "@/components/DataTable";
+import { StatusCell, StatusCode } from "@/components/StatusCell";
+import { Truck, Wrench, MapPin, Clock } from "lucide-react";
 import { useState } from "react";
 import { EquipmentDetailModal } from "@/components/EquipmentDetailModal";
 import { Card } from "@/components/ui/card";
+import { ColumnDef } from "@tanstack/react-table";
+
+interface Equipment {
+  id: string;
+  name: string;
+  location: string;
+  maintenance: StatusCode;
+  err: StatusCode;
+  hours: number;
+  type: string;
+  serialNumber: string;
+  purchaseDate: string;
+  operator?: string;
+  warrantyStatus: "Active" | "Expired" | "N/A";
+  isRental: boolean;
+  lastReportBy?: string;
+  lastReportHours?: number;
+  lastReportDate?: string;
+  notes?: string;
+}
 
 export default function Dashboard() {
-  const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const recentEquipment = [
+  const needsAttention: Equipment[] = [
     {
-      id: "EX-2024-001",
-      name: "CAT 320 Excavator",
-      type: "Excavator",
-      status: "good" as const,
-      engineHours: 1245,
-      lastSeen: "2 hours ago",
-      operator: "John Smith",
-      site: "Downtown Build",
-      serialNumber: "CAT320GC2024001",
-      purchaseDate: "Jan 15, 2024",
-      nextMaintenance: "Nov 15, 2025",
+      id: "TR-2024-015",
+      name: "Ford F-550",
+      type: "Truck",
+      location: "Unassigned",
+      maintenance: "R_3",
+      err: "R_3",
+      hours: 5420,
+      serialNumber: "1FDUF5HT8FDA12345",
+      purchaseDate: "Feb 10, 2024",
+      operator: "Sarah Johnson",
+      warrantyStatus: "Active",
+      isRental: false,
+      lastReportBy: "Sarah Johnson",
+      lastReportHours: 5420,
+      lastReportDate: "Nov 4, 2025",
+      notes: "Hydraulic hose broke - URGENT",
+    },
+    {
+      id: "BH-2023-012",
+      name: "CAT 420F Backhoe",
+      type: "Backhoe",
+      location: "Airport Expansion",
+      maintenance: "R_3",
+      err: "G_1",
+      hours: 3650,
+      serialNumber: "CAT420F2023012",
+      purchaseDate: "Aug 15, 2023",
+      warrantyStatus: "Active",
+      isRental: false,
+      lastReportBy: "Sarah Chen",
+      lastReportHours: 3650,
+      lastReportDate: "Nov 6, 2025",
     },
     {
       id: "LP-2023-042",
       name: "Graco LineDriver",
       type: "Line Painter",
-      status: "warning" as const,
-      engineHours: 3890,
-      lastSeen: "1 day ago",
-      site: "Highway 401 Project",
+      location: "Highway 401 Project",
+      maintenance: "Y_2",
+      err: "Y_2",
+      hours: 3890,
       serialNumber: "GLD2023042",
       purchaseDate: "Mar 22, 2023",
-      nextMaintenance: "Nov 8, 2025",
+      warrantyStatus: "Expired",
+      isRental: false,
+      lastReportBy: "Mike Torres",
+      lastReportHours: 3890,
+      lastReportDate: "Nov 5, 2025",
+      notes: "AC unit needs repair, not critical",
     },
     {
-      id: "TR-2024-015",
-      name: "Ford F-550",
-      type: "Truck",
-      status: "critical" as const,
-      engineHours: 5420,
-      lastSeen: "3 hours ago",
-      operator: "Sarah Johnson",
-      serialNumber: "1FDUF5HT8FDA12345",
-      purchaseDate: "Feb 10, 2024",
-      nextMaintenance: "OVERDUE",
+      id: "EX-2023-087",
+      name: "Volvo EC220E",
+      type: "Excavator",
+      location: "Airport Expansion",
+      maintenance: "Y_2",
+      err: "G_1",
+      hours: 2890,
+      serialNumber: "VLV220E2023087",
+      purchaseDate: "Jun 5, 2023",
+      warrantyStatus: "Active",
+      isRental: false,
+      lastReportBy: "Sarah Chen",
+      lastReportHours: 2890,
+      lastReportDate: "Nov 6, 2025",
     },
   ];
 
-  const handleEquipmentClick = (equipment: any) => {
+  const columns: ColumnDef<Equipment>[] = [
+    {
+      accessorKey: "name",
+      header: ({ column }) => <SortableHeader column={column}>Name</SortableHeader>,
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">{row.original.name}</div>
+          <div className="text-xs font-mono text-muted-foreground">{row.original.id}</div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "location",
+      header: ({ column }) => <SortableHeader column={column}>Location</SortableHeader>,
+      cell: ({ row }) => <div className="text-sm">{row.original.location}</div>,
+    },
+    {
+      accessorKey: "maintenance",
+      header: ({ column }) => <SortableHeader column={column}>Maintenance</SortableHeader>,
+      cell: ({ row }) => <StatusCell status={row.original.maintenance} type="maintenance" />,
+    },
+    {
+      accessorKey: "err",
+      header: ({ column }) => <SortableHeader column={column}>ERR</SortableHeader>,
+      cell: ({ row }) => <StatusCell status={row.original.err} type="err" />,
+    },
+    {
+      accessorKey: "hours",
+      header: ({ column }) => <SortableHeader column={column}>Hours</SortableHeader>,
+      cell: ({ row }) => (
+        <div className="font-mono text-sm">{row.original.hours.toLocaleString()}</div>
+      ),
+    },
+  ];
+
+  const handleRowClick = (equipment: Equipment) => {
     setSelectedEquipment(equipment);
     setDetailOpen(true);
   };
@@ -85,19 +171,8 @@ export default function Dashboard() {
       </div>
 
       <Card className="p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <AlertCircle className="w-5 h-5 text-yellow-600" />
-          <h2 className="text-lg font-semibold">Needs Attention</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {recentEquipment.map((equipment) => (
-            <EquipmentCard
-              key={equipment.id}
-              {...equipment}
-              onClick={() => handleEquipmentClick(equipment)}
-            />
-          ))}
-        </div>
+        <h2 className="text-lg font-semibold mb-4">Needs Attention</h2>
+        <DataTable columns={columns} data={needsAttention} onRowClick={handleRowClick} />
       </Card>
 
       <EquipmentDetailModal

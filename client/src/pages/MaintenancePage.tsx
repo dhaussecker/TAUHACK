@@ -1,68 +1,139 @@
 import { Card } from "@/components/ui/card";
-import { MaintenanceTimeline } from "@/components/MaintenanceTimeline";
+import { DataTable, SortableHeader } from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
 import { Plus, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ColumnDef } from "@tanstack/react-table";
+import { useState } from "react";
+
+interface MaintenanceItem {
+  id: string;
+  equipment: string;
+  equipmentId: string;
+  task: string;
+  dueDate: string;
+  hours: number;
+  priority: "critical" | "warning" | "normal";
+}
 
 export default function MaintenancePage() {
-  const overdueItems = [
+  const [selectedTab, setSelectedTab] = useState("overdue");
+
+  const overdueItems: MaintenanceItem[] = [
     {
+      id: "M-001",
       equipment: "Ford F-550",
-      id: "TR-2024-015",
+      equipmentId: "TR-2024-015",
       task: "Oil Change & Filter",
       dueDate: "Nov 3, 2025",
       hours: 5420,
+      priority: "critical",
     },
     {
-      equipment: "CAT 420F",
-      id: "BH-2023-012",
+      id: "M-002",
+      equipment: "CAT 420F Backhoe",
+      equipmentId: "BH-2023-012",
       task: "50-Hour Service",
       dueDate: "Nov 5, 2025",
       hours: 3650,
+      priority: "critical",
     },
   ];
 
-  const upcomingItems = [
+  const upcomingItems: MaintenanceItem[] = [
     {
+      id: "M-003",
       equipment: "Graco LineDriver",
-      id: "LP-2023-042",
+      equipmentId: "LP-2023-042",
       task: "Annual Inspection",
       dueDate: "Nov 8, 2025",
       hours: 3890,
+      priority: "warning",
     },
     {
+      id: "M-004",
       equipment: "CAT 320 Excavator",
-      id: "EX-2024-001",
+      equipmentId: "EX-2024-001",
       task: "100-Hour Service",
       dueDate: "Nov 15, 2025",
       hours: 1245,
+      priority: "normal",
+    },
+    {
+      id: "M-005",
+      equipment: "Volvo EC220E",
+      equipmentId: "EX-2023-087",
+      task: "Hydraulic Check",
+      dueDate: "Nov 20, 2025",
+      hours: 2890,
+      priority: "normal",
     },
   ];
 
-  const recentlyCompleted = [
+  const completedItems: MaintenanceItem[] = [
     {
-      id: "1",
-      type: "completed" as const,
-      title: "Hydraulic System Check - CAT 320",
-      description: "Inspected hydraulic lines and replaced worn seals",
-      date: "Nov 1, 2025",
-      mechanic: "Sarah Chen",
+      id: "M-006",
+      equipment: "CAT 320 Excavator",
+      equipmentId: "EX-2024-001",
+      task: "Oil Change",
+      dueDate: "Oct 15, 2025",
+      hours: 1200,
+      priority: "normal",
     },
     {
-      id: "2",
-      type: "completed" as const,
-      title: "Engine Tune-up - Volvo EC220E",
-      description: "Full engine diagnostic and adjustment",
-      date: "Oct 28, 2025",
-      mechanic: "Mike Torres",
+      id: "M-007",
+      equipment: "Volvo EC220E",
+      equipmentId: "EX-2023-087",
+      task: "Engine Tune-up",
+      dueDate: "Oct 28, 2025",
+      hours: 2850,
+      priority: "normal",
+    },
+  ];
+
+  const columns: ColumnDef<MaintenanceItem>[] = [
+    {
+      accessorKey: "equipment",
+      header: ({ column }) => <SortableHeader column={column}>Equipment</SortableHeader>,
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">{row.original.equipment}</div>
+          <div className="text-xs font-mono text-muted-foreground">{row.original.equipmentId}</div>
+        </div>
+      ),
     },
     {
-      id: "3",
-      type: "completed" as const,
-      title: "Tire Rotation - RAM 3500",
-      description: "Rotated all tires and checked alignment",
-      date: "Oct 25, 2025",
-      mechanic: "James Wilson",
+      accessorKey: "task",
+      header: ({ column }) => <SortableHeader column={column}>Task</SortableHeader>,
+      cell: ({ row }) => <div className="text-sm">{row.original.task}</div>,
+    },
+    {
+      accessorKey: "dueDate",
+      header: ({ column }) => <SortableHeader column={column}>Due Date</SortableHeader>,
+      cell: ({ row }) => <div className="text-sm">{row.original.dueDate}</div>,
+    },
+    {
+      accessorKey: "hours",
+      header: ({ column }) => <SortableHeader column={column}>Hours</SortableHeader>,
+      cell: ({ row }) => (
+        <div className="font-mono text-sm">{row.original.hours.toLocaleString()}</div>
+      ),
+    },
+    {
+      accessorKey: "priority",
+      header: "Priority",
+      cell: ({ row }) => {
+        const colors = {
+          critical: "text-red-600 font-semibold",
+          warning: "text-yellow-600 font-medium",
+          normal: "text-muted-foreground",
+        };
+        return (
+          <div className={`text-sm uppercase text-xs ${colors[row.original.priority]}`}>
+            {row.original.priority}
+          </div>
+        );
+      },
     },
   ];
 
@@ -117,53 +188,41 @@ export default function MaintenancePage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="overdue" className="w-full">
+      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
         <TabsList>
-          <TabsTrigger value="overdue" data-testid="tab-overdue">Overdue ({overdueItems.length})</TabsTrigger>
-          <TabsTrigger value="upcoming" data-testid="tab-upcoming">Upcoming ({upcomingItems.length})</TabsTrigger>
-          <TabsTrigger value="completed" data-testid="tab-completed">Completed</TabsTrigger>
+          <TabsTrigger value="overdue" data-testid="tab-overdue">
+            Overdue ({overdueItems.length})
+          </TabsTrigger>
+          <TabsTrigger value="upcoming" data-testid="tab-upcoming">
+            Upcoming ({upcomingItems.length})
+          </TabsTrigger>
+          <TabsTrigger value="completed" data-testid="tab-completed">
+            Completed
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overdue" className="space-y-3">
-          {overdueItems.map((item) => (
-            <Card key={item.id} className="p-4 border-l-4 border-l-red-500" data-testid={`card-overdue-${item.id}`}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="font-medium text-foreground">{item.equipment}</h3>
-                  <p className="text-sm font-mono text-muted-foreground">{item.id}</p>
-                  <p className="text-sm text-muted-foreground mt-2">{item.task}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-red-600">Overdue</p>
-                  <p className="text-xs text-muted-foreground">Due: {item.dueDate}</p>
-                  <p className="text-xs text-muted-foreground">{item.hours.toLocaleString()} hrs</p>
-                </div>
-              </div>
-            </Card>
-          ))}
+        <TabsContent value="overdue" className="mt-4">
+          <DataTable
+            columns={columns}
+            data={overdueItems}
+            onRowClick={(item) => console.log("View maintenance:", item.id)}
+          />
         </TabsContent>
 
-        <TabsContent value="upcoming" className="space-y-3">
-          {upcomingItems.map((item) => (
-            <Card key={item.id} className="p-4 border-l-4 border-l-yellow-500" data-testid={`card-upcoming-${item.id}`}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="font-medium text-foreground">{item.equipment}</h3>
-                  <p className="text-sm font-mono text-muted-foreground">{item.id}</p>
-                  <p className="text-sm text-muted-foreground mt-2">{item.task}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-yellow-600">Scheduled</p>
-                  <p className="text-xs text-muted-foreground">Due: {item.dueDate}</p>
-                  <p className="text-xs text-muted-foreground">{item.hours.toLocaleString()} hrs</p>
-                </div>
-              </div>
-            </Card>
-          ))}
+        <TabsContent value="upcoming" className="mt-4">
+          <DataTable
+            columns={columns}
+            data={upcomingItems}
+            onRowClick={(item) => console.log("View maintenance:", item.id)}
+          />
         </TabsContent>
 
-        <TabsContent value="completed">
-          <MaintenanceTimeline events={recentlyCompleted} />
+        <TabsContent value="completed" className="mt-4">
+          <DataTable
+            columns={columns}
+            data={completedItems}
+            onRowClick={(item) => console.log("View maintenance:", item.id)}
+          />
         </TabsContent>
       </Tabs>
     </div>

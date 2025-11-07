@@ -1,10 +1,21 @@
-import { Card } from "@/components/ui/card";
+import { DataTable, SortableHeader } from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
-import { Plus, MapPin, Truck, Calendar } from "lucide-react";
-import { StatusBadge } from "@/components/StatusBadge";
+import { Plus } from "lucide-react";
+import { ColumnDef } from "@tanstack/react-table";
+import { StatusCell, StatusCode } from "@/components/StatusCell";
+
+interface Site {
+  id: string;
+  name: string;
+  address: string;
+  equipmentCount: number;
+  activeEquipment: number;
+  startDate: string;
+  status: StatusCode;
+}
 
 export default function SitesPage() {
-  const sites = [
+  const sites: Site[] = [
     {
       id: "SITE-001",
       name: "Downtown Build",
@@ -12,7 +23,7 @@ export default function SitesPage() {
       equipmentCount: 8,
       activeEquipment: 6,
       startDate: "Jan 10, 2025",
-      status: "good" as const,
+      status: "G_1",
     },
     {
       id: "SITE-002",
@@ -21,7 +32,7 @@ export default function SitesPage() {
       equipmentCount: 12,
       activeEquipment: 10,
       startDate: "Feb 15, 2025",
-      status: "warning" as const,
+      status: "Y_2",
     },
     {
       id: "SITE-003",
@@ -30,7 +41,7 @@ export default function SitesPage() {
       equipmentCount: 15,
       activeEquipment: 15,
       startDate: "Mar 1, 2025",
-      status: "good" as const,
+      status: "G_1",
     },
     {
       id: "SITE-004",
@@ -39,7 +50,53 @@ export default function SitesPage() {
       equipmentCount: 5,
       activeEquipment: 3,
       startDate: "Apr 20, 2025",
-      status: "good" as const,
+      status: "G_1",
+    },
+    {
+      id: "SITE-005",
+      name: "Bridge Repair - QEW",
+      address: "QEW Highway, Burlington, ON",
+      equipmentCount: 7,
+      activeEquipment: 7,
+      startDate: "May 5, 2025",
+      status: "G_1",
+    },
+  ];
+
+  const columns: ColumnDef<Site>[] = [
+    {
+      accessorKey: "name",
+      header: ({ column }) => <SortableHeader column={column}>Site Name</SortableHeader>,
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">{row.original.name}</div>
+          <div className="text-xs font-mono text-muted-foreground">{row.original.id}</div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "address",
+      header: ({ column }) => <SortableHeader column={column}>Address</SortableHeader>,
+      cell: ({ row }) => <div className="text-sm">{row.original.address}</div>,
+    },
+    {
+      accessorKey: "equipmentCount",
+      header: ({ column }) => <SortableHeader column={column}>Equipment</SortableHeader>,
+      cell: ({ row }) => (
+        <div className="text-sm">
+          {row.original.activeEquipment} / {row.original.equipmentCount} active
+        </div>
+      ),
+    },
+    {
+      accessorKey: "startDate",
+      header: ({ column }) => <SortableHeader column={column}>Start Date</SortableHeader>,
+      cell: ({ row }) => <div className="text-sm">{row.original.startDate}</div>,
+    },
+    {
+      accessorKey: "status",
+      header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
+      cell: ({ row }) => <StatusCell status={row.original.status} type="maintenance" />,
     },
   ];
 
@@ -56,58 +113,11 @@ export default function SitesPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {sites.map((site) => (
-          <Card
-            key={site.id}
-            className="p-6 hover-elevate active-elevate-2 cursor-pointer"
-            onClick={() => console.log("Site clicked:", site.id)}
-            data-testid={`card-site-${site.id}`}
-          >
-            <div className="space-y-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-medium text-foreground">{site.name}</h3>
-                  <p className="text-sm font-mono text-muted-foreground">{site.id}</p>
-                </div>
-                <StatusBadge status={site.status} />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>{site.address}</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Truck className="w-4 h-4 flex-shrink-0" />
-                  <span>{site.activeEquipment} of {site.equipmentCount} equipment active</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="w-4 h-4 flex-shrink-0" />
-                  <span>Started: {site.startDate}</span>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log("View equipment for:", site.id);
-                  }}
-                  data-testid={`button-view-equipment-${site.id}`}
-                >
-                  View Equipment
-                </Button>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+      <DataTable
+        columns={columns}
+        data={sites}
+        onRowClick={(site) => console.log("View site:", site.id)}
+      />
     </div>
   );
 }
