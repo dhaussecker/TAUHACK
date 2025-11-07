@@ -1,0 +1,124 @@
+# 🏗️ TAUlab Feature List (Draft)
+
+> Goal: Identify which features are **critical for MVP**, **nice-to-have**, or **future**.
+
+---
+
+## 🧱 A. Core (MVP) Features
+Focus: Automate what Acadia did manually — tracking usage, simplifying reporting, and minimizing data entry.
+
+### 1. Equipment Management
+- [ ] Equipment list by category (Excavators, Line Painters, Trucks, etc.)
+- [ ] Search, sort, and filter by type, site, or status
+- [ ] Color-coded status indicators (G = good, Y = upcoming maintenance, R = due/critical)
+- [ ] View engine hours, last seen time, and assigned operator
+- [ ] QR code per asset for quick access to details or inspection forms
+
+### 2. Usage Tracking (Automatic)
+- [ ] IMU-based state detection (OFF / IDLE / MOVING / WORKING)
+- [ ] Engine hour tracking (aggregated from state data)
+- [ ] GPS-based site detection (auto-log “on-site” vs “off-site”)
+- [ ] BLE tag presence detection for small unpowered assets
+- [ ] Geofence-based time tracking (start/stop timers automatically)
+
+### 3. Maintenance Management
+- [ ] Automated maintenance reminders (based on hours/days)
+- [ ] Mechanic dashboard (schedule maintenance, mark as complete)
+- [ ] Equipment Repair Requests (ERRs) – manual or automatic
+- [ ] Maintenance history log per machine
+
+### 4. Reporting & Transparency
+- [ ] Automatic, human-readable reports:
+  - Usage (hours, location, activity breakdown)
+  - Maintenance summary
+  - Asset utilization (actual vs rental)
+- [ ] CSV/PDF export for invoicing
+- [ ] Email or mobile notification summaries
+
+### 5. Mobile + Tablet Functionality
+- [ ] Tablet master device per site (BLE gateway + geofence boundary)
+- [ ] Offline caching and sync
+- [ ] Simple UI for operators (QR scan → optional notes / ERR submission)
+
+---
+
+## 🧭 B. Operational / Admin Features
+Focus: Reduce admin overhead and integrate data into existing workflows.
+
+### 6. Job & Site Management
+- [ ] List of job sites (with geofences and assigned equipment)
+- [ ] View all equipment per site (like Acadia’s “Site View”)
+- [ ] Site-level usage summaries
+- [ ] Attach photos or documents (inspection images, site notes)
+
+### 7. User Roles & Permissions
+- [ ] Admin (full access)
+- [ ] Mechanic (maintenance & ERR)
+- [ ] Operator (QR scan + view assigned equipment)
+- [ ] Viewer (client/subcontractor access)
+
+### 8. Subcontractor / Client Portal
+- [ ] View assigned equipment and reports
+- [ ] Submit timesheets or approvals
+- [ ] Client signature or proof-of-work verification
+
+### 9. Data Integrations
+- [ ] Export to QuickBooks, Sage, or Excel
+- [ ] Simple CSV import/export
+- [ ] Optional API endpoint (Procore, custom ERP)
+
+### 10. Notifications & Alerts
+- [ ] After-hours engine-on alerts
+- [ ] Geofence breach (“equipment left site”)
+- [ ] Maintenance due/overdue notifications
+- [ ] BLE tag low battery/disconnected alerts
+
+---
+
+## ⚙️ C. Advanced / Phase 2+ Features
+Focus: Analytics, AI, and ecosystem differentiation.
+
+### 11. Analytics & Insights
+- [ ] Equipment utilization dashboards
+- [ ] Cost-per-hour and cost-per-site analytics
+- [ ] Owned vs rented utilization comparison
+- [ ] Operator productivity (auto-linked by geofence)
+- [ ] Custom KPI dashboards
+
+### 12. Predictive Maintenance (AI / ML)
+- [ ] Vibration signature analysis
+- [ ] Predict time-to-failure or service intervals
+- [ ] Auto-schedule maintenance based on patterns
+
+### 13. Multi-Fleet & Multi-Tenant Support
+- [ ] Manage multiple companies or subcontractors
+- [ ] Invite external partners with limited access
+- [ ] Cross-fleet aggregated dashboards
+
+### 14. Hardware Ecosystem Expansion
+- [ ] OEM telematics integration (CAT, Volvo, Bobcat)
+- [ ] OTA firmware updates for BLE/IMU devices
+- [ ] Integration with external sensors (fuel, temperature, hydraulics)
+
+### 15. Compliance & Documentation
+- [ ] Daily inspection logs (auto or QR-triggered)
+- [ ] Safety checklist uploads
+- [ ] Full audit trail of usage and maintenance records
+
+---
+
+## 🎨 D. Design Principles (Inspired by Acadia)
+- “Lots of data, but simple data.”  
+- Spreadsheet-style interface with color-coded rows.  
+- Clean, light background (`#FAF9F8` or `#D9D9D9`).  
+- Equipment cards open into minimal detail views.  
+- One-click exports and transparent data flow.
+
+---
+
+### ✅ Next Steps
+Use checkboxes to mark each feature:
+- **Critical (MVP)** — Must-have for launch.
+- **Important** — Needed soon after pilot.
+- **Future** — Adds differentiation or polish.
+
