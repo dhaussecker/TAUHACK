@@ -3,10 +3,11 @@ import { StatusCell, StatusCode } from "@/components/StatusCell";
 import { SearchBar } from "@/components/SearchBar";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Filter } from "lucide-react";
+import { Plus, Filter, Settings } from "lucide-react";
 import { useState, useMemo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { EquipmentDetailModal } from "@/components/EquipmentDetailModal";
+import { CustomFieldManager } from "@/components/CustomFieldManager";
 
 interface Equipment {
   id: string;
@@ -32,6 +33,7 @@ export default function EquipmentPage() {
   const [filter, setFilter] = useState("all");
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [customFieldsOpen, setCustomFieldsOpen] = useState(false);
 
   const allEquipment: Equipment[] = [
     {
@@ -251,10 +253,20 @@ export default function EquipmentPage() {
             {filteredEquipment.length} of {allEquipment.length} equipment
           </p>
         </div>
-        <Button data-testid="button-add-equipment">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Equipment
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setCustomFieldsOpen(true)}
+            data-testid="button-manage-fields"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Manage Fields
+          </Button>
+          <Button data-testid="button-add-equipment">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Equipment
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -284,6 +296,12 @@ export default function EquipmentPage() {
         open={detailOpen}
         onOpenChange={setDetailOpen}
         equipment={selectedEquipment}
+      />
+
+      <CustomFieldManager
+        open={customFieldsOpen}
+        onOpenChange={setCustomFieldsOpen}
+        entityType="equipment"
       />
     </div>
   );
