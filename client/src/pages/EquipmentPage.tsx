@@ -16,20 +16,29 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 interface Equipment {
   id: string;
   name: string;
+  type: string;
+  siteId?: string | null;
   location: string;
   maintenance: StatusCode;
   err: StatusCode;
   hours: number;
-  type: string;
   serialNumber: string;
   purchaseDate: string;
-  operator?: string;
-  warrantyStatus: "Active" | "Expired" | "N/A";
+  operator?: string | null;
+  warrantyStatus: string;
   isRental: boolean;
-  lastReportBy?: string;
-  lastReportHours?: number;
-  lastReportDate?: string;
-  notes?: string;
+  lastReportBy?: string | null;
+  lastReportHours?: number | null;
+  lastReportDate?: string | null;
+  notes?: string | null;
+}
+
+// Transform database isRental (number) to UI isRental (boolean)
+function transformEquipmentFromAPI(data: any[]): Equipment[] {
+  return data.map(item => ({
+    ...item,
+    isRental: item.isRental === 1,
+  }));
 }
 
 export default function EquipmentPage() {
@@ -44,6 +53,15 @@ export default function EquipmentPage() {
   const { data: customFieldValues = [] } = useQuery<any[]>({
     queryKey: ["/api/field-values"],
   });
+  
+  const { data: rawEquipment, isLoading } = useQuery<any[]>({
+    queryKey: ["/api/equipment"],
+  });
+  
+  const allEquipment = useMemo(() => {
+    if (!rawEquipment) return [];
+    return transformEquipmentFromAPI(rawEquipment);
+  }, [rawEquipment]);
   
   const updateFieldValueMutation = useMutation({
     mutationFn: async ({ fieldId, equipmentId, value, fieldType }: { 
@@ -64,144 +82,11 @@ export default function EquipmentPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/field-values"] });
     },
   });
-
-  const allEquipment: Equipment[] = [
-    {
-      id: "EX-2024-001",
-      name: "CAT 320 Excavator",
-      type: "Excavator",
-      location: "Downtown Build",
-      maintenance: "G_1",
-      err: "G_1",
-      hours: 1245,
-      serialNumber: "CAT320GC2024001",
-      purchaseDate: "Jan 15, 2024",
-      operator: "John Smith",
-      warrantyStatus: "Active",
-      isRental: false,
-      lastReportBy: "John Smith",
-      lastReportHours: 1245,
-      lastReportDate: "Nov 7, 2025",
-      notes: "New machine, running smoothly",
-    },
-    {
-      id: "EX-2023-087",
-      name: "Volvo EC220E",
-      type: "Excavator",
-      location: "Airport Expansion",
-      maintenance: "Y_2",
-      err: "G_1",
-      hours: 2890,
-      serialNumber: "VLV220E2023087",
-      purchaseDate: "Jun 5, 2023",
-      warrantyStatus: "Active",
-      isRental: false,
-      lastReportBy: "Sarah Chen",
-      lastReportHours: 2890,
-      lastReportDate: "Nov 6, 2025",
-    },
-    {
-      id: "LP-2023-042",
-      name: "Graco LineDriver",
-      type: "Line Painter",
-      location: "Highway 401 Project",
-      maintenance: "Y_2",
-      err: "Y_2",
-      hours: 3890,
-      serialNumber: "GLD2023042",
-      purchaseDate: "Mar 22, 2023",
-      warrantyStatus: "Expired",
-      isRental: false,
-      lastReportBy: "Mike Torres",
-      lastReportHours: 3890,
-      lastReportDate: "Nov 5, 2025",
-      notes: "AC unit needs repair, not critical",
-    },
-    {
-      id: "TR-2024-015",
-      name: "Ford F-550",
-      type: "Truck",
-      location: "Unassigned",
-      maintenance: "R_3",
-      err: "R_3",
-      hours: 5420,
-      serialNumber: "1FDUF5HT8FDA12345",
-      purchaseDate: "Feb 10, 2024",
-      operator: "Sarah Johnson",
-      warrantyStatus: "Active",
-      isRental: false,
-      lastReportBy: "Sarah Johnson",
-      lastReportHours: 5420,
-      lastReportDate: "Nov 4, 2025",
-      notes: "Hydraulic hose broke - URGENT",
-    },
-    {
-      id: "TR-2024-022",
-      name: "RAM 3500",
-      type: "Truck",
-      location: "Residential Complex",
-      maintenance: "G_1",
-      err: "G_1",
-      hours: 1567,
-      serialNumber: "3C63R3HL2FG567890",
-      purchaseDate: "Apr 8, 2024",
-      operator: "Mike Torres",
-      warrantyStatus: "Active",
-      isRental: false,
-      lastReportBy: "Mike Torres",
-      lastReportHours: 1567,
-      lastReportDate: "Nov 7, 2025",
-    },
-    {
-      id: "SK-2023-031",
-      name: "Bobcat T770",
-      type: "Skid Steer",
-      location: "Downtown Build",
-      maintenance: "G_1",
-      err: "G_1",
-      hours: 4230,
-      serialNumber: "BBT770-2023031",
-      purchaseDate: "May 12, 2023",
-      warrantyStatus: "Expired",
-      isRental: true,
-      lastReportBy: "James Wilson",
-      lastReportHours: 4230,
-      lastReportDate: "Nov 3, 2025",
-    },
-    {
-      id: "BH-2023-012",
-      name: "CAT 420F Backhoe",
-      type: "Backhoe",
-      location: "Airport Expansion",
-      maintenance: "R_3",
-      err: "G_1",
-      hours: 3650,
-      serialNumber: "CAT420F2023012",
-      purchaseDate: "Aug 15, 2023",
-      warrantyStatus: "Active",
-      isRental: false,
-      lastReportBy: "Sarah Chen",
-      lastReportHours: 3650,
-      lastReportDate: "Nov 6, 2025",
-    },
-    {
-      id: "CMP-2024-005",
-      name: "Wacker Neuson Roller",
-      type: "Compactor",
-      location: "Highway 401 Project",
-      maintenance: "G_1",
-      err: "Y_2",
-      hours: 890,
-      serialNumber: "WNR2024005",
-      purchaseDate: "Jul 20, 2024",
-      warrantyStatus: "Active",
-      isRental: true,
-      lastReportBy: "Mike Torres",
-      lastReportHours: 890,
-      lastReportDate: "Nov 7, 2025",
-      notes: "Minor vibration issue, monitoring",
-    },
-  ];
+  
+  const handleRowClick = (equipment: Equipment) => {
+    setSelectedEquipment(equipment);
+    setDetailOpen(true);
+  };
 
   const staticColumns: ColumnDef<Equipment>[] = [
     {
@@ -304,11 +189,6 @@ export default function EquipmentPage() {
       return matchesSearch && matchesFilter;
     });
   }, [search, filter, allEquipment]);
-
-  const handleRowClick = (equipment: Equipment) => {
-    setSelectedEquipment(equipment);
-    setDetailOpen(true);
-  };
 
   return (
     <div className="space-y-6">
