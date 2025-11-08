@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EditableCustomFieldCell } from "@/components/EditableCustomFieldCell";
 import { Plus, Filter, Settings } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { EquipmentDetailModal } from "@/components/EquipmentDetailModal";
 import { CustomFieldManager } from "@/components/CustomFieldManager";
 import { useCustomFields } from "@/hooks/useCustomFields";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 interface Equipment {
   id: string;
@@ -42,12 +43,13 @@ function transformEquipmentFromAPI(data: any[]): Equipment[] {
 }
 
 export default function EquipmentPage() {
+  const [location, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [customFieldsOpen, setCustomFieldsOpen] = useState(false);
-  
+
   const { customFields } = useCustomFields("equipment");
   
   const { data: customFieldValues = [] } = useQuery<any[]>({
@@ -87,6 +89,22 @@ export default function EquipmentPage() {
     setSelectedEquipment(equipment);
     setDetailOpen(true);
   };
+
+  // Handle deep-linking from map via query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const equipmentId = params.get('id');
+
+    if (equipmentId && allEquipment.length > 0) {
+      const equipment = allEquipment.find(eq => eq.id === equipmentId);
+      if (equipment) {
+        setSelectedEquipment(equipment);
+        setDetailOpen(true);
+        // Clear the query parameter after opening
+        setLocation('/equipment', { replace: true });
+      }
+    }
+  }, [allEquipment, setLocation]);
 
   const staticColumns: ColumnDef<Equipment>[] = [
     {

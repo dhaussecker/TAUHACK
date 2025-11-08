@@ -1,11 +1,13 @@
 import { KPICard } from "@/components/KPICard";
 import { DataTable, SortableHeader } from "@/components/DataTable";
 import { StatusCell, StatusCode } from "@/components/StatusCell";
-import { Truck, Wrench, MapPin, Clock } from "lucide-react";
-import { useState } from "react";
+import { Truck, Wrench, MapPin, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useEffect } from "react";
 import { EquipmentDetailModal } from "@/components/EquipmentDetailModal";
 import { EquipmentMapView } from "@/components/EquipmentMapView";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ColumnDef } from "@tanstack/react-table";
 
 interface Equipment {
@@ -33,6 +35,16 @@ interface Equipment {
 export default function Dashboard() {
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [mapExpanded, setMapExpanded] = useState(() => {
+    // Load from localStorage, default to true (expanded)
+    const saved = localStorage.getItem('dashboardMapExpanded');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  // Save to localStorage when map expand state changes
+  useEffect(() => {
+    localStorage.setItem('dashboardMapExpanded', JSON.stringify(mapExpanded));
+  }, [mapExpanded]);
 
   const needsAttention: Equipment[] = [
     {
@@ -159,13 +171,26 @@ export default function Dashboard() {
         <p className="text-sm text-muted-foreground">Equipment overview and status</p>
       </div>
 
-      <EquipmentMapView
-        equipment={needsAttention}
-        onEquipmentClick={(equipment) => {
-          setSelectedEquipment(equipment);
-          setDetailOpen(true);
-        }}
-      />
+      <Collapsible open={mapExpanded} onOpenChange={setMapExpanded}>
+        <Card className="p-3 mb-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-muted-foreground">Map View</h2>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                {mapExpanded ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+                <span className="sr-only">Toggle map</span>
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+        </Card>
+        <CollapsibleContent className="space-y-6">
+          <EquipmentMapView equipment={needsAttention} />
+        </CollapsibleContent>
+      </Collapsible>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard

@@ -1,10 +1,12 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
-import { MapPin } from "lucide-react";
+import { MapPin, Map, Satellite } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 
 // Fix for default marker icons in react-leaflet
 import icon from "leaflet/dist/images/marker-icon.png";
@@ -45,8 +47,9 @@ interface Site {
 interface EquipmentMapViewProps {
   equipment: Equipment[];
   sites?: Site[];
-  onEquipmentClick?: (equipment: Equipment) => void;
 }
+
+type ViewMode = "street" | "satellite";
 
 // Helper to create custom markers based on status
 const createStatusMarker = (status: string, type: "maintenance" | "err") => {
@@ -104,7 +107,10 @@ function MapBounds({ equipment, sites }: { equipment: Equipment[]; sites?: Site[
   return null;
 }
 
-export function EquipmentMapView({ equipment, sites = [], onEquipmentClick }: EquipmentMapViewProps) {
+export function EquipmentMapView({ equipment, sites = [] }: EquipmentMapViewProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>("street");
+  const [, setLocation] = useLocation();
+
   // Filter equipment with valid coordinates or that can inherit from site
   const mappableEquipment = equipment.filter((eq) => {
     if (eq.latitude && eq.longitude) return true;
@@ -129,11 +135,41 @@ export function EquipmentMapView({ equipment, sites = [], onEquipmentClick }: Eq
     return null;
   };
 
+  // Navigate to equipment page with ID parameter
+  const handleViewDetails = (equipmentId: string) => {
+    setLocation(`/equipment?id=${equipmentId}`);
+  };
+
   // Default center (will be overridden by MapBounds)
   const defaultCenter: L.LatLngTuple = [39.8283, -98.5795]; // Center of USA
 
   return (
     <Card className="overflow-hidden">
+      {/* Map header with view toggle */}
+      <div className="flex items-center justify-between p-3 border-b bg-muted/30">
+        <h3 className="text-sm font-medium">Equipment Locations</h3>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={viewMode === "street" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("street")}
+            className="h-8"
+          >
+            <Map className="w-4 h-4 mr-1" />
+            Street
+          </Button>
+          <Button
+            variant={viewMode === "satellite" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("satellite")}
+            className="h-8"
+          >
+            <Satellite className="w-4 h-4 mr-1" />
+            Satellite
+          </Button>
+        </div>
+      </div>
+
       <div className="h-[450px] relative">
         {mappableEquipment.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full bg-muted/10">
@@ -148,10 +184,17 @@ export function EquipmentMapView({ equipment, sites = [], onEquipmentClick }: Eq
             scrollWheelZoom={true}
             className="h-full w-full"
           >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+            {viewMode === "street" ? (
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+            ) : (
+              <TileLayer
+                attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              />
+            )}
 
             <MapBounds equipment={mappableEquipment} sites={sites} />
 
@@ -200,15 +243,11 @@ export function EquipmentMapView({ equipment, sites = [], onEquipmentClick }: Eq
                   key={eq.id}
                   position={coords}
                   icon={createStatusMarker(worstStatus, "maintenance")}
-                  eventHandlers={{
-                    click: () => onEquipmentClick?.(eq),
-                  }}
                 >
                   <Popup>
-                    <div className="p-2 min-w-[200px]">
-                      <h3 className="font-semibold text-sm mb-1">{eq.name}</h3>
-                      <p className="text-xs text-muted-foreground mb-2 font-mono">{eq.id}</p>
-                      <div className="space-y-1">
+                    <div className="p-2 min-w-[180px]">
+                      <h3 className="font-semibold text-sm mb-2">{eq.name}</h3>
+                      <div className="space-y-1 mb-3">
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">Maintenance:</span>
                           <StatusBadge status={eq.maintenance} type="maintenance" />
@@ -217,18 +256,10 @@ export function EquipmentMapView({ equipment, sites = [], onEquipmentClick }: Eq
                           <span className="text-muted-foreground">ERR:</span>
                           <StatusBadge status={eq.err} type="err" />
                         </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Hours:</span>
-                          <span className="font-mono">{eq.hours.toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Type:</span>
-                          <span>{eq.type}</span>
-                        </div>
                       </div>
                       <button
-                        onClick={() => onEquipmentClick?.(eq)}
-                        className="mt-2 text-xs text-primary hover:underline w-full text-left"
+                        onClick={() => handleViewDetails(eq.id)}
+                        className="mt-2 text-xs text-primary hover:underline w-full text-left font-medium"
                       >
                         View Details →
                       </button>
