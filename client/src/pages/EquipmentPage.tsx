@@ -3,11 +3,15 @@ import { StatusCell, StatusCode } from "@/components/StatusCell";
 import { SearchBar } from "@/components/SearchBar";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EditableCustomFieldCell } from "@/components/EditableCustomFieldCell";
 import { Plus, Filter, Settings } from "lucide-react";
 import { useState, useMemo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { EquipmentDetailModal } from "@/components/EquipmentDetailModal";
 import { CustomFieldManager } from "@/components/CustomFieldManager";
+import { useCustomFields } from "@/hooks/useCustomFields";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface Equipment {
   id: string;
@@ -34,6 +38,32 @@ export default function EquipmentPage() {
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [customFieldsOpen, setCustomFieldsOpen] = useState(false);
+  
+  const { customFields } = useCustomFields("equipment");
+  
+  const { data: customFieldValues = [] } = useQuery<any[]>({
+    queryKey: ["/api/field-values"],
+  });
+  
+  const updateFieldValueMutation = useMutation({
+    mutationFn: async ({ fieldId, equipmentId, value, fieldType }: { 
+      fieldId: string; 
+      equipmentId: string; 
+      value: string | number; 
+      fieldType: string;
+    }) => {
+      return await apiRequest("POST", "/api/field-values", {
+        fieldId,
+        equipmentId,
+        textValue: fieldType === "text" ? String(value) : null,
+        numberValue: fieldType === "number" ? Number(value) : null,
+        selectValue: fieldType === "select" ? String(value) : null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/field-values"] });
+    },
+  });
 
   const allEquipment: Equipment[] = [
     {
@@ -173,7 +203,7 @@ export default function EquipmentPage() {
     },
   ];
 
-  const columns: ColumnDef<Equipment>[] = [
+  const staticColumns: ColumnDef<Equipment>[] = [
     {
       accessorKey: "name",
       header: ({ column }) => <SortableHeader column={column}>Name</SortableHeader>,
@@ -221,6 +251,42 @@ export default function EquipmentPage() {
       ),
     },
   ];
+
+  const dynamicCustomFieldColumns: ColumnDef<Equipment>[] = customFields.map((field) => ({
+    id: `custom_${field.id}`,
+    header: ({ column }) => <SortableHeader column={column}>{field.name}</SortableHeader>,
+    cell: ({ row }) => {
+      const equipmentId = row.original.id;
+      const fieldValue = customFieldValues.find(
+        (v: any) => v.fieldId === field.id && v.equipmentId === equipmentId
+      );
+      
+      const currentValue = field.fieldType === "text" 
+        ? fieldValue?.textValue 
+        : field.fieldType === "number" 
+        ? fieldValue?.numberValue 
+        : fieldValue?.selectValue;
+
+      return (
+        <EditableCustomFieldCell
+          fieldId={field.id}
+          equipmentId={equipmentId}
+          fieldType={field.fieldType}
+          currentValue={currentValue}
+          onSave={(value) => {
+            updateFieldValueMutation.mutate({
+              fieldId: field.id,
+              equipmentId,
+              value,
+              fieldType: field.fieldType,
+            });
+          }}
+        />
+      );
+    },
+  }));
+
+  const columns = [...staticColumns, ...dynamicCustomFieldColumns];
 
   const filteredEquipment = useMemo(() => {
     return allEquipment.filter((eq) => {

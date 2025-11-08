@@ -59,35 +59,35 @@ export function InspectionForm({ onSuccess }: InspectionFormProps) {
 
   const submitMutation = useMutation({
     mutationFn: async (data: InspectionFormData) => {
-      // Create form submission
-      const submissionRes = await apiRequest("POST", "/api/forms/submissions", {
-        formType: "inspection",
-        equipmentId: data.equipmentId,
-        submittedBy: data.submittedBy,
-        location: data.location,
-        notes: data.notes || "",
-        status: "completed",
-      });
-      const submission = await submissionRes.json();
-
-      // Create form responses for custom fields
-      if (equipmentFields.length > 0) {
-        for (const field of equipmentFields) {
+      const responses = equipmentFields
+        .filter((field) => {
           const value = data.customFields[field.id];
-          if (value !== undefined && value !== "") {
-            await apiRequest("POST", "/api/forms/responses", {
-              submissionId: submission.id,
-              fieldId: field.id,
-              fieldName: field.name,
-              textValue: field.fieldType === "text" ? String(value) : null,
-              numberValue: field.fieldType === "number" ? Number(value) : null,
-              selectValue: field.fieldType === "select" ? String(value) : null,
-            });
-          }
-        }
-      }
+          return value !== undefined && value !== "";
+        })
+        .map((field) => {
+          const value = data.customFields[field.id];
+          return {
+            fieldId: field.id,
+            fieldName: field.name,
+            textValue: field.fieldType === "text" ? String(value) : null,
+            numberValue: field.fieldType === "number" ? Number(value) : null,
+            selectValue: field.fieldType === "select" ? String(value) : null,
+          };
+        });
 
-      return submission;
+      const result = await apiRequest("POST", "/api/forms/submit", {
+        submission: {
+          formType: "inspection",
+          equipmentId: data.equipmentId,
+          submittedBy: data.submittedBy,
+          location: data.location,
+          notes: data.notes || "",
+          status: "completed",
+        },
+        responses,
+      });
+
+      return await result.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/forms/submissions"] });

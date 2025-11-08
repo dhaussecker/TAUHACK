@@ -59,40 +59,35 @@ export function ERRForm({ onSuccess }: ERRFormProps) {
 
   const submitMutation = useMutation({
     mutationFn: async (data: ERRFormData) => {
-      // Create form submission
-      const submissionRes = await apiRequest("POST", "/api/forms/submissions", {
-        formType: "err",
-        equipmentId: data.equipmentId,
-        submittedBy: data.submittedBy,
-        location: data.location,
-        notes: data.notes,
-        status: "pending",
-      });
-      const submission = await submissionRes.json();
-
-      // Create form responses for custom fields
-      if (maintenanceFields.length > 0) {
-        for (const field of maintenanceFields) {
+      const responses = maintenanceFields
+        .filter((field) => {
           const value = data.customFields[field.id];
-          if (value !== undefined && value !== "") {
-            await apiRequest("POST", "/api/forms/responses", {
-              submissionId: submission.id,
-              fieldId: field.id,
-              fieldName: field.name,
-              textValue: field.fieldType === "text" ? String(value) : null,
-              numberValue: field.fieldType === "number" ? Number(value) : null,
-              selectValue: field.fieldType === "select" ? String(value) : null,
-            });
-          }
-        }
-      }
+          return value !== undefined && value !== "";
+        })
+        .map((field) => {
+          const value = data.customFields[field.id];
+          return {
+            fieldId: field.id,
+            fieldName: field.name,
+            textValue: field.fieldType === "text" ? String(value) : null,
+            numberValue: field.fieldType === "number" ? Number(value) : null,
+            selectValue: field.fieldType === "select" ? String(value) : null,
+          };
+        });
 
-      // Update equipment ERR status to red
-      await apiRequest("PATCH", `/api/equipment/${data.equipmentId}`, {
-        err: "R_3",
+      const result = await apiRequest("POST", "/api/forms/submit", {
+        submission: {
+          formType: "err",
+          equipmentId: data.equipmentId,
+          submittedBy: data.submittedBy,
+          location: data.location,
+          notes: data.notes,
+          status: "pending",
+        },
+        responses,
       });
 
-      return submission;
+      return await result.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/equipment"] });

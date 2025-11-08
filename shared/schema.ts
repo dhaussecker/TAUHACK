@@ -3,6 +3,12 @@ import { pgTable, text, varchar, integer, jsonb, timestamp, unique } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Enums for form validation
+export const formTypeEnum = z.enum(["err", "inspection"]);
+export const formStatusEnum = z.enum(["pending", "completed", "cancelled"]);
+export type FormType = z.infer<typeof formTypeEnum>;
+export type FormStatus = z.infer<typeof formStatusEnum>;
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
@@ -135,6 +141,9 @@ export const formSubmissions = pgTable("form_submissions", {
 export const insertFormSubmissionSchema = createInsertSchema(formSubmissions).omit({
   id: true,
   submittedAt: true,
+}).extend({
+  formType: formTypeEnum,
+  status: formStatusEnum.default("pending"),
 });
 
 export type InsertFormSubmission = z.infer<typeof insertFormSubmissionSchema>;

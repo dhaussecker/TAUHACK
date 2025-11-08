@@ -325,6 +325,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/forms/submit", async (req, res) => {
+    try {
+      const schema = z.object({
+        submission: insertFormSubmissionSchema,
+        responses: z.array(insertFormResponseSchema.omit({ submissionId: true })),
+      });
+      const { submission, responses } = schema.parse(req.body);
+      const result = await storage.submitFormWithResponses(submission, responses);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

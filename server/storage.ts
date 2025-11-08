@@ -77,6 +77,9 @@ export interface IStorage {
   // Form Responses
   getSubmissionResponses(submissionId: string): Promise<FormResponse[]>;
   createFormResponse(response: InsertFormResponse): Promise<FormResponse>;
+
+  // Transactional Form Submission
+  submitFormWithResponses(submission: InsertFormSubmission, responses: InsertFormResponse[]): Promise<{ submission: FormSubmission; responses: FormResponse[] }>;
 }
 
 export class DbStorage implements IStorage {
@@ -281,6 +284,27 @@ export class DbStorage implements IStorage {
   async createFormResponse(response: InsertFormResponse): Promise<FormResponse> {
     const [created] = await db.insert(formResponses).values(response).returning();
     return created;
+  }
+
+  async submitFormWithResponses(submission: InsertFormSubmission, responses: InsertFormResponse[]): Promise<{ submission: FormSubmission; responses: FormResponse[] }> {
+    return await db.transaction(async (tx) => {
+      const [createdSubmission] = await tx.insert(formSubmissions).values(submission).returning();
+
+      const createdResponses: FormResponse[] = [];
+      for (const response of responses) {
+        const [createdResponse] = await tx.insert(formResponses).values({
+          ...response,
+          submissionId: createdSubmission.id,
+        }).returning();
+        createdResponses.push(createdResponse);
+      }
+
+      if (submission.formType === "err" && submission.equipmentId) {
+        await tx.update(equipment).set({ err: "R_3" }).where(eq(equipment.id, submission.equipmentId));
+      }
+
+      return { submission: createdSubmission, responses: createdResponses };
+    });
   }
 }
 
@@ -562,6 +586,45 @@ export class MemStorage implements IStorage {
     };
     this.formResponses.set(id, created);
     return created;
+  }
+
+  async submitFormWithResponses(submission: InsertFormSubmission, responses: InsertFormResponse[]): Promise<{ submission: FormSubmission; responses: FormResponse[] }> {
+    const submissionId = randomUUID();
+    const createdSubmission: FormSubmission = {
+      ...submission,
+      id: submissionId,
+      equipmentId: submission.equipmentId ?? null,
+      location: submission.location ?? null,
+      notes: submission.notes ?? null,
+      completedAt: submission.completedAt ?? null,
+      submittedAt: new Date(),
+    };
+    this.formSubmissions.set(submissionId, createdSubmission);
+
+    const createdResponses: FormResponse[] = [];
+    for (const response of responses) {
+      const responseId = randomUUID();
+      const createdResponse: FormResponse = {
+        ...response,
+        id: responseId,
+        submissionId,
+        fieldId: response.fieldId ?? null,
+        textValue: response.textValue ?? null,
+        numberValue: response.numberValue ?? null,
+        selectValue: response.selectValue ?? null,
+      };
+      this.formResponses.set(responseId, createdResponse);
+      createdResponses.push(createdResponse);
+    }
+
+    if (submission.formType === "err" && submission.equipmentId) {
+      const equipmentItem = this.equipment.get(submission.equipmentId);
+      if (equipmentItem) {
+        this.equipment.set(submission.equipmentId, { ...equipmentItem, err: "R_3" });
+      }
+    }
+
+    return { submission: createdSubmission, responses: createdResponses };
   }
 }
 
