@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import {
   insertEquipmentSchema,
+  insertMaintenanceSchema,
+  insertSiteSchema,
   insertCustomFieldSchema,
   insertCustomFieldOptionSchema,
   insertCustomFieldValueSchema,
@@ -16,7 +18,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Equipment routes
   app.get("/api/equipment", async (req, res) => {
     try {
-      const equipment = await storage.getAllEquipment();
+      const siteId = req.query.siteId as string | undefined;
+      const equipment = await storage.getAllEquipment(siteId);
       res.json(equipment);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -58,6 +61,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/equipment/:id", async (req, res) => {
     try {
       await storage.deleteEquipment(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Maintenance routes
+  app.get("/api/maintenance", async (req, res) => {
+    try {
+      const equipmentId = req.query.equipmentId as string | undefined;
+      const maintenance = await storage.getAllMaintenance(equipmentId);
+      res.json(maintenance);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/maintenance/:id", async (req, res) => {
+    try {
+      const maintenance = await storage.getMaintenance(req.params.id);
+      if (!maintenance) {
+        return res.status(404).json({ error: "Maintenance record not found" });
+      }
+      res.json(maintenance);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/maintenance", async (req, res) => {
+    try {
+      const validated = insertMaintenanceSchema.parse(req.body);
+      const maintenance = await storage.createMaintenance(validated);
+      res.json(maintenance);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/maintenance/:id", async (req, res) => {
+    try {
+      const validated = insertMaintenanceSchema.partial().parse(req.body);
+      const maintenance = await storage.updateMaintenance(req.params.id, validated);
+      res.json(maintenance);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/maintenance/:id", async (req, res) => {
+    try {
+      await storage.deleteMaintenance(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Sites routes
+  app.get("/api/sites", async (req, res) => {
+    try {
+      const sites = await storage.getAllSites();
+      res.json(sites);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/sites/:id", async (req, res) => {
+    try {
+      const site = await storage.getSite(req.params.id);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      res.json(site);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/sites", async (req, res) => {
+    try {
+      const validated = insertSiteSchema.parse(req.body);
+      const site = await storage.createSite(validated);
+      res.json(site);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/sites/:id", async (req, res) => {
+    try {
+      const validated = insertSiteSchema.partial().parse(req.body);
+      const site = await storage.updateSite(req.params.id, validated);
+      res.json(site);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/sites/:id", async (req, res) => {
+    try {
+      await storage.deleteSite(req.params.id);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

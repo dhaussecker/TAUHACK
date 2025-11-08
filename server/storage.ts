@@ -3,6 +3,10 @@ import {
   type InsertUser,
   type Equipment,
   type InsertEquipment,
+  type Maintenance,
+  type InsertMaintenance,
+  type Site,
+  type InsertSite,
   type CustomField,
   type InsertCustomField,
   type CustomFieldOption,
@@ -17,6 +21,8 @@ import {
   type InsertFormResponse,
   users,
   equipment,
+  maintenance,
+  sites,
   customFields,
   customFieldOptions,
   customFieldValues,
@@ -35,11 +41,25 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
 
   // Equipment
-  getAllEquipment(): Promise<Equipment[]>;
+  getAllEquipment(siteId?: string): Promise<Equipment[]>;
   getEquipment(id: string): Promise<Equipment | undefined>;
   createEquipment(equipment: InsertEquipment): Promise<Equipment>;
   updateEquipment(id: string, equipment: Partial<InsertEquipment>): Promise<Equipment>;
   deleteEquipment(id: string): Promise<void>;
+
+  // Maintenance
+  getAllMaintenance(equipmentId?: string): Promise<Maintenance[]>;
+  getMaintenance(id: string): Promise<Maintenance | undefined>;
+  createMaintenance(maintenance: InsertMaintenance): Promise<Maintenance>;
+  updateMaintenance(id: string, maintenance: Partial<InsertMaintenance>): Promise<Maintenance>;
+  deleteMaintenance(id: string): Promise<void>;
+
+  // Sites
+  getAllSites(): Promise<Site[]>;
+  getSite(id: string): Promise<Site | undefined>;
+  createSite(site: InsertSite): Promise<Site>;
+  updateSite(id: string, site: Partial<InsertSite>): Promise<Site>;
+  deleteSite(id: string): Promise<void>;
 
   // Custom Fields
   getAllCustomFields(entityType?: string): Promise<CustomField[]>;
@@ -100,7 +120,10 @@ export class DbStorage implements IStorage {
   }
 
   // Equipment
-  async getAllEquipment(): Promise<Equipment[]> {
+  async getAllEquipment(siteId?: string): Promise<Equipment[]> {
+    if (siteId) {
+      return await db.select().from(equipment).where(eq(equipment.siteId, siteId));
+    }
     return await db.select().from(equipment);
   }
 
@@ -123,6 +146,61 @@ export class DbStorage implements IStorage {
   async deleteEquipment(id: string): Promise<void> {
     const result = await db.delete(equipment).where(eq(equipment.id, id)).returning();
     if (result.length === 0) throw new Error("Equipment not found");
+  }
+
+  // Maintenance
+  async getAllMaintenance(equipmentId?: string): Promise<Maintenance[]> {
+    if (equipmentId) {
+      return await db.select().from(maintenance).where(eq(maintenance.equipmentId, equipmentId));
+    }
+    return await db.select().from(maintenance);
+  }
+
+  async getMaintenance(id: string): Promise<Maintenance | undefined> {
+    const [item] = await db.select().from(maintenance).where(eq(maintenance.id, id));
+    return item;
+  }
+
+  async createMaintenance(insertMaintenance: InsertMaintenance): Promise<Maintenance> {
+    const [item] = await db.insert(maintenance).values(insertMaintenance).returning();
+    return item;
+  }
+
+  async updateMaintenance(id: string, updates: Partial<InsertMaintenance>): Promise<Maintenance> {
+    const [item] = await db.update(maintenance).set(updates).where(eq(maintenance.id, id)).returning();
+    if (!item) throw new Error("Maintenance record not found");
+    return item;
+  }
+
+  async deleteMaintenance(id: string): Promise<void> {
+    const result = await db.delete(maintenance).where(eq(maintenance.id, id)).returning();
+    if (result.length === 0) throw new Error("Maintenance record not found");
+  }
+
+  // Sites
+  async getAllSites(): Promise<Site[]> {
+    return await db.select().from(sites);
+  }
+
+  async getSite(id: string): Promise<Site | undefined> {
+    const [item] = await db.select().from(sites).where(eq(sites.id, id));
+    return item;
+  }
+
+  async createSite(insertSite: InsertSite): Promise<Site> {
+    const [item] = await db.insert(sites).values(insertSite).returning();
+    return item;
+  }
+
+  async updateSite(id: string, updates: Partial<InsertSite>): Promise<Site> {
+    const [item] = await db.update(sites).set(updates).where(eq(sites.id, id)).returning();
+    if (!item) throw new Error("Site not found");
+    return item;
+  }
+
+  async deleteSite(id: string): Promise<void> {
+    const result = await db.delete(sites).where(eq(sites.id, id)).returning();
+    if (result.length === 0) throw new Error("Site not found");
   }
 
   // Custom Fields
@@ -311,6 +389,8 @@ export class DbStorage implements IStorage {
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private equipment: Map<string, Equipment>;
+  private maintenanceRecords: Map<string, Maintenance>;
+  private sites: Map<string, Site>;
   private customFields: Map<string, CustomField>;
   private customFieldOptions: Map<string, CustomFieldOption>;
   private customFieldValues: Map<string, CustomFieldValue>;
@@ -321,6 +401,8 @@ export class MemStorage implements IStorage {
   constructor() {
     this.users = new Map();
     this.equipment = new Map();
+    this.maintenanceRecords = new Map();
+    this.sites = new Map();
     this.customFields = new Map();
     this.customFieldOptions = new Map();
     this.customFieldValues = new Map();
@@ -348,8 +430,12 @@ export class MemStorage implements IStorage {
   }
 
   // Equipment
-  async getAllEquipment(): Promise<Equipment[]> {
-    return Array.from(this.equipment.values());
+  async getAllEquipment(siteId?: string): Promise<Equipment[]> {
+    const all = Array.from(this.equipment.values());
+    if (siteId) {
+      return all.filter(e => e.siteId === siteId);
+    }
+    return all;
   }
 
   async getEquipment(id: string): Promise<Equipment | undefined> {
@@ -372,6 +458,90 @@ export class MemStorage implements IStorage {
 
   async deleteEquipment(id: string): Promise<void> {
     this.equipment.delete(id);
+  }
+
+  // Maintenance
+  async getAllMaintenance(equipmentId?: string): Promise<Maintenance[]> {
+    const all = Array.from(this.maintenanceRecords.values());
+    if (equipmentId) {
+      return all.filter(m => m.equipmentId === equipmentId);
+    }
+    return all;
+  }
+
+  async getMaintenance(id: string): Promise<Maintenance | undefined> {
+    return this.maintenanceRecords.get(id);
+  }
+
+  async createMaintenance(insertMaintenance: InsertMaintenance): Promise<Maintenance> {
+    const id = randomUUID();
+    const item: Maintenance = {
+      ...insertMaintenance,
+      id,
+      equipmentId: insertMaintenance.equipmentId ?? null,
+      scheduledDate: insertMaintenance.scheduledDate ?? null,
+      completedDate: insertMaintenance.completedDate ?? null,
+      status: insertMaintenance.status ?? "pending",
+      priority: insertMaintenance.priority ?? "medium",
+      assignedTo: insertMaintenance.assignedTo ?? null,
+      cost: insertMaintenance.cost ?? null,
+      notes: insertMaintenance.notes ?? null,
+      createdAt: new Date(),
+    };
+    this.maintenanceRecords.set(id, item);
+    return item;
+  }
+
+  async updateMaintenance(id: string, updates: Partial<InsertMaintenance>): Promise<Maintenance> {
+    const existing = this.maintenanceRecords.get(id);
+    if (!existing) throw new Error("Maintenance record not found");
+    const updated = { ...existing, ...updates };
+    this.maintenanceRecords.set(id, updated);
+    return updated;
+  }
+
+  async deleteMaintenance(id: string): Promise<void> {
+    this.maintenanceRecords.delete(id);
+  }
+
+  // Sites
+  async getAllSites(): Promise<Site[]> {
+    return Array.from(this.sites.values());
+  }
+
+  async getSite(id: string): Promise<Site | undefined> {
+    return this.sites.get(id);
+  }
+
+  async createSite(insertSite: InsertSite): Promise<Site> {
+    const id = randomUUID();
+    const item: Site = {
+      ...insertSite,
+      id,
+      state: insertSite.state ?? null,
+      zipCode: insertSite.zipCode ?? null,
+      projectManager: insertSite.projectManager ?? null,
+      status: insertSite.status ?? "active",
+      startDate: insertSite.startDate ?? null,
+      endDate: insertSite.endDate ?? null,
+      equipmentCount: insertSite.equipmentCount ?? 0,
+      notes: insertSite.notes ?? null,
+      createdAt: new Date(),
+    };
+    this.sites.set(id, item);
+    return item;
+  }
+
+  async updateSite(id: string, updates: Partial<InsertSite>): Promise<Site> {
+    const existing = this.sites.get(id);
+    if (!existing) throw new Error("Site not found");
+    const updated = { ...existing, ...updates };
+    this.sites.set(id, updated);
+    return updated;
+  }
+
+  async deleteSite(id: string): Promise<void> {
+    this.sites.delete(id);
   }
 
   // Custom Fields

@@ -23,11 +23,36 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+// Sites table (defined first to allow FK reference)
+export const sites = pgTable("sites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state"),
+  zipCode: text("zip_code"),
+  projectManager: text("project_manager"),
+  status: text("status").notNull().default("active"), // "planning", "active", "on_hold", "completed"
+  startDate: text("start_date"),
+  endDate: text("end_date"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSiteSchema = createInsertSchema(sites).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertSite = z.infer<typeof insertSiteSchema>;
+export type Site = typeof sites.$inferSelect;
+
 // Equipment table
 export const equipment = pgTable("equipment", {
   id: varchar("id").primaryKey(),
   name: text("name").notNull(),
   type: text("type").notNull(),
+  siteId: varchar("site_id").references(() => sites.id, { onDelete: "set null" }),
   location: text("location").notNull(),
   maintenance: text("maintenance").notNull(), // G_1, Y_2, R_3
   err: text("err").notNull(), // G_1, Y_2, R_3
@@ -46,6 +71,30 @@ export const equipment = pgTable("equipment", {
 export const insertEquipmentSchema = createInsertSchema(equipment);
 export type InsertEquipment = z.infer<typeof insertEquipmentSchema>;
 export type Equipment = typeof equipment.$inferSelect;
+
+// Maintenance table
+export const maintenance = pgTable("maintenance", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  equipmentId: varchar("equipment_id").references(() => equipment.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // "scheduled", "repair", "inspection"
+  description: text("description").notNull(),
+  scheduledDate: text("scheduled_date"),
+  completedDate: text("completed_date"),
+  status: text("status").notNull().default("pending"), // "pending", "in_progress", "completed", "cancelled"
+  priority: text("priority").notNull().default("medium"), // "low", "medium", "high"
+  assignedTo: text("assigned_to"),
+  cost: integer("cost"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertMaintenanceSchema = createInsertSchema(maintenance).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertMaintenance = z.infer<typeof insertMaintenanceSchema>;
+export type Maintenance = typeof maintenance.$inferSelect;
 
 // Custom field definitions
 export const customFields = pgTable("custom_fields", {
