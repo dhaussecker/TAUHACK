@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, jsonb, timestamp, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, jsonb, timestamp, unique, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -31,6 +31,8 @@ export const sites = pgTable("sites", {
   city: text("city").notNull(),
   state: text("state"),
   zipCode: text("zip_code"),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
   projectManager: text("project_manager"),
   status: text("status").notNull().default("active"), // "planning", "active", "on_hold", "completed"
   startDate: text("start_date"),
@@ -54,6 +56,8 @@ export const equipment = pgTable("equipment", {
   type: text("type").notNull(),
   siteId: varchar("site_id").references(() => sites.id, { onDelete: "set null" }),
   location: text("location").notNull(),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
   maintenance: text("maintenance").notNull(), // G_1, Y_2, R_3
   err: text("err").notNull(), // G_1, Y_2, R_3
   hours: integer("hours").notNull().default(0),

@@ -4,6 +4,7 @@ import { StatusCell, StatusCode } from "@/components/StatusCell";
 import { Truck, Wrench, MapPin, Clock } from "lucide-react";
 import { useState } from "react";
 import { EquipmentDetailModal } from "@/components/EquipmentDetailModal";
+import { EquipmentMapView } from "@/components/EquipmentMapView";
 import { Card } from "@/components/ui/card";
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -11,6 +12,9 @@ interface Equipment {
   id: string;
   name: string;
   location: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  siteId?: string | null;
   maintenance: StatusCode;
   err: StatusCode;
   hours: number;
@@ -36,6 +40,8 @@ export default function Dashboard() {
       name: "Ford F-550",
       type: "Truck",
       location: "Unassigned",
+      latitude: 40.7128,
+      longitude: -74.0060, // New York
       maintenance: "R_3",
       err: "R_3",
       hours: 5420,
@@ -54,6 +60,8 @@ export default function Dashboard() {
       name: "CAT 420F Backhoe",
       type: "Backhoe",
       location: "Airport Expansion",
+      latitude: 33.9416,
+      longitude: -118.4085, // LAX area
       maintenance: "R_3",
       err: "G_1",
       hours: 3650,
@@ -70,6 +78,8 @@ export default function Dashboard() {
       name: "Graco LineDriver",
       type: "Line Painter",
       location: "Highway 401 Project",
+      latitude: 41.8781,
+      longitude: -87.6298, // Chicago
       maintenance: "Y_2",
       err: "Y_2",
       hours: 3890,
@@ -87,6 +97,8 @@ export default function Dashboard() {
       name: "Volvo EC220E",
       type: "Excavator",
       location: "Airport Expansion",
+      latitude: 33.9416,
+      longitude: -118.4085, // LAX area (same as backhoe)
       maintenance: "Y_2",
       err: "G_1",
       hours: 2890,
@@ -146,6 +158,14 @@ export default function Dashboard() {
         <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
         <p className="text-sm text-muted-foreground">Equipment overview and status</p>
       </div>
+
+      <EquipmentMapView
+        equipment={needsAttention}
+        onEquipmentClick={(equipment) => {
+          setSelectedEquipment(equipment);
+          setDetailOpen(true);
+        }}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
